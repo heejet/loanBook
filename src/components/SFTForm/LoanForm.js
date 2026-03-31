@@ -10,9 +10,9 @@ import {
   Spin,
 } from "antd";
 import { MinusCircleOutlined, PlusOutlined } from "@ant-design/icons";
+import { Scanner } from "@yudiel/react-qr-scanner"; // <-- import QR scanner
 
 import { CONSTANTS } from "../../utils/constants";
-
 import {
   getFromLocal,
   saveToLocal,
@@ -41,6 +41,10 @@ const LoanForm = () => {
   const [formValues, setFormValues] = useState({});
   const [subUnitLabel, setSubUnitLabel] = useState("Platoon/ Section:");
 
+  // QR scanner state
+  const [isScanning, setIsScanning] = useState(false);
+  const [listOfItems, setListOfItems] = useState([]);
+
   const initialValues = {
     rankName: getFromLocal(CONSTANTS.FORM_ITEM_KEYS.RANK_NAME) || "",
     subUnit: getFromLocal(CONSTANTS.FORM_ITEM_KEYS.SUB_UNIT) || "",
@@ -48,50 +52,42 @@ const LoanForm = () => {
       getFromLocal(CONSTANTS.FORM_ITEM_KEYS.PLATOON_SECTION) || "",
   };
 
-  useEffect(() => {
-    // const fetchChecklist = async () => {
-    //   setIsLoadingChecklist(true);
-    //   try {
-    //     const data = await getSFTChecklist(CONSTANTS.SHEETS);
-    //     setSFTChecklist(data);
-    //   } catch (error) {
-    //     messageApi.error("Failed to load checklist.");
-    //   } finally {
-    //     setIsLoadingChecklist(false);
-    //   }
-    // };
-    // fetchChecklist();
-  }, []);
+  useEffect(() => {}, []);
 
   /** Form handlers */
   const onFinish = async (values) => {
     console.log(values);
     setFormValues(values);
     setIsModalShown(true);
-    // setIsLoadingChecklist(true);
-
-    // try {
-    //   const data = await getSFTChecklist(CONSTANTS.SHEETS);
-    //   setSFTChecklist(data);
-    // } catch (error) {
-    //   messageApi.error("Failed to load checklist.");
-    // } finally {
-    //   setIsLoadingChecklist(false);
-    // }
   };
 
-  const startActivity = async () => {};
+  const startScan = () => {
+    setIsScanning(true);
+  };
+
+  const handleScan = (result) => {
+    if (!result) return;
+    console.log("Detected codes:", result);
+    const currentItems = new Set(form.getFieldValue("itemLoaned") || []);
+    currentItems.add(result[0].rawValue);
+    form.setFieldsValue({ itemLoaned: Array.from(currentItems) });
+    setIsScanning(false);
+  };
+
+  const handleScanError = (error) => {
+    console.error(error);
+    setIsScanning(false);
+  };
 
   const onFinishFailed = (errorInfo) => {
     console.log("Failed:", errorInfo);
   };
 
+  const startActivity = async () => {};
   const onFinishActivity = async () => {};
-
   const onChecklistChange = (list) => {
     setCheckedList(list);
   };
-
   const onSubUnitChange = (e) => {
     saveToLocal(CONSTANTS.FORM_ITEM_KEYS.SUB_UNIT, e);
     if (e === CONSTANTS.COYS.HQ) {
@@ -118,7 +114,7 @@ const LoanForm = () => {
           rules={[
             {
               required: true,
-              message: "Please enter your full rank and name!",
+              message: "Please enter your full rank and name.",
             },
           ]}
         >
@@ -131,14 +127,14 @@ const LoanForm = () => {
           rules={[
             {
               required: true,
-              message: "Please select the school you are asigned to.",
+              message: "Please enter your sub unit.",
             },
           ]}
         >
           <Select
             disabled={isActivityStarted}
             onChange={onSubUnitChange}
-            placeholder="Select your sub-unit"
+            placeholder="Select your sub-unit."
             options={[
               { value: CONSTANTS.COYS.HQ, label: CONSTANTS.COYS.HQ },
               { value: CONSTANTS.COYS.ALPHA, label: CONSTANTS.COYS.ALPHA },
@@ -149,25 +145,11 @@ const LoanForm = () => {
           />
         </Form.Item>
 
-        <Form.Item
-          label={subUnitLabel}
-          name="platoonSection"
-          style={{ width: "80vw" }}
-          rules={[
-            {
-              required: true,
-              message: "Please input your platoon and section!",
-            },
-          ]}
-        >
-          <Input disabled={isActivityStarted} />
-        </Form.Item>
-
         <Form.List name="itemLoaned">
-          {(fields, { add, remove }, { errors }) => (
+          {(fields, { remove }, { errors }) => (
             <Form.Item label="Items Loaned">
               {fields.map((field) => {
-                const { key, ...fieldProps } = field; // extract key from spread
+                const { key, ...fieldProps } = field;
                 return (
                   <div
                     key={key}
@@ -178,7 +160,7 @@ const LoanForm = () => {
                     }}
                   >
                     <Form.Item
-                      {...fieldProps} // spread without key
+                      {...fieldProps}
                       rules={[
                         {
                           required: true,
@@ -188,7 +170,13 @@ const LoanForm = () => {
                       ]}
                       noStyle
                     >
-                      <Input disabled style={{ flex: 1 }} />
+                      <Input
+                        style={{ flex: 1 }}
+                        value={
+                          form.getFieldValue("itemLoaned")?.[field.name] || ""
+                        }
+                        disabled
+                      />
                     </Form.Item>
 
                     {fields.length > 1 && !isActivityStarted && (
@@ -200,15 +188,16 @@ const LoanForm = () => {
                   </div>
                 );
               })}
+
               <Form.Item>
                 <Button
                   type="dashed"
-                  onClick={() => add("")}
+                  onClick={startScan}
                   style={{ width: "100%" }}
                   icon={<PlusOutlined />}
-                  disabled={isActivityStarted}
+                  disabled={isActivityStarted || isScanning}
                 >
-                  Add Item
+                  Add Item (Scan QR)
                 </Button>
                 <Form.ErrorList errors={errors} />
               </Form.Item>
@@ -239,29 +228,14 @@ const LoanForm = () => {
         )}
       </Form>
 
+      {/* QR Scanner Modal */}
       <Modal
-        title="SFT Checklist"
-        open={isModalShown}
-        onCancel={() => setIsModalShown(false)}
-        footer={
-          <Button
-            type="primary"
-            onClick={startActivity}
-            loading={isMessageSending}
-          >
-            Start Activity
-          </Button>
-        }
-        loading={isLoadingChecklist}
+        title="Loan Item"
+        open={isScanning}
+        onCancel={() => setIsScanning(false)}
+        footer={[]}
       >
-        <h5>By submitting this form, I declare that:</h5>
-        <Checkbox.Group value={checkedList} onChange={onChecklistChange}>
-          {SFTChecklist.map((item) => (
-            <Checkbox key={item} value={item} className="checkbox-label">
-              {item}
-            </Checkbox>
-          ))}
-        </Checkbox.Group>
+        <Scanner onScan={handleScan} onError={handleScanError} />
       </Modal>
     </Spin>
   );
