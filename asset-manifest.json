@@ -1,15 +1,15 @@
 {
   "files": {
-    "main.css": "/sftTracker/static/css/main.72da7351.css",
-    "main.js": "/sftTracker/static/js/main.d77c3a8b.js",
-    "static/js/453.80f8227a.chunk.js": "/sftTracker/static/js/453.80f8227a.chunk.js",
-    "index.html": "/sftTracker/index.html",
-    "main.72da7351.css.map": "/sftTracker/static/css/main.72da7351.css.map",
-    "main.d77c3a8b.js.map": "/sftTracker/static/js/main.d77c3a8b.js.map",
-    "453.80f8227a.chunk.js.map": "/sftTracker/static/js/453.80f8227a.chunk.js.map"
+    "main.css": "/loanBook/static/css/main.72da7351.css",
+    "main.js": "/loanBook/static/js/main.ed6745ea.js",
+    "static/js/453.d192deb1.chunk.js": "/loanBook/static/js/453.d192deb1.chunk.js",
+    "index.html": "/loanBook/index.html",
+    "main.72da7351.css.map": "/loanBook/static/css/main.72da7351.css.map",
+    "main.ed6745ea.js.map": "/loanBook/static/js/main.ed6745ea.js.map",
+    "453.d192deb1.chunk.js.map": "/loanBook/static/js/453.d192deb1.chunk.js.map"
   },
   "entrypoints": [
     "static/css/main.72da7351.css",
-    "static/js/main.d77c3a8b.js"
+    "static/js/main.ed6745ea.js"
   ]
 }
