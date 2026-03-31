@@ -1,5 +1,4 @@
 import { createSlice } from "@reduxjs/toolkit";
-import { checkIfActivityHasStarted } from "../utils/telegramSender";
 
 const initialState = { isActivityStarted: false };
 const sftFormSlice = createSlice({

@@ -1,5 +1,5 @@
 import { CONSTANTS } from "./constants";
-import { getFromLocal } from "./telegramSender";
+import { getFromLocal } from "./localStorage";
 
 export const getSFTChecklist = async (url) => {
   url += `?action=GET_SFT_CHECKLIST`;
