@@ -1,7 +1,7 @@
 {
-  "name": "sft-bot",
+  "name": "loan-book",
   "version": "0.1.0",
-  "homepage": "https://30scedigitalisationprojects.github.io/sftTracker",
+  "homepage": "https://heejet.github.io/loanBook/",
   "private": true,
   "dependencies": {
     "@reduxjs/toolkit": "^2.2.6",
