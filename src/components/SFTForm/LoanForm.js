@@ -31,7 +31,7 @@ const LoanForm = () => {
   const [messageApi, contextHolder] = message.useMessage();
 
   const [isActivityStarted, setIsActivityStarted] = useState(
-    checkIfActivityHasStarted()
+    checkIfActivityHasStarted(),
   );
   const [isMessageSending, setIsMessageSending] = useState(false);
   const [isModalShown, setIsModalShown] = useState(false);
@@ -43,7 +43,7 @@ const LoanForm = () => {
 
   // QR scanner state
   const [isScanning, setIsScanning] = useState(false);
-  const [listOfItems, setListOfItems] = useState([]);
+  const [isScannerPaused, setIsScannerPaused] = useState(true);
 
   const initialValues = {
     rankName: getFromLocal(CONSTANTS.FORM_ITEM_KEYS.RANK_NAME) || "",
@@ -62,7 +62,14 @@ const LoanForm = () => {
   };
 
   const startScan = () => {
+    setIsScannerPaused(false);
     setIsScanning(true);
+  };
+
+  const stopScanner = () => {
+    setIsScanning(false);
+    setIsScannerPaused(true);
+    console.log("Scanner paused");
   };
 
   const handleScan = (result) => {
@@ -71,12 +78,13 @@ const LoanForm = () => {
     const currentItems = new Set(form.getFieldValue("itemLoaned") || []);
     currentItems.add(result[0].rawValue);
     form.setFieldsValue({ itemLoaned: Array.from(currentItems) });
-    setIsScanning(false);
+    setIsScannerPaused(true);
+    stopScanner();
   };
 
   const handleScanError = (error) => {
     console.error(error);
-    setIsScanning(false);
+    stopScanner();
   };
 
   const onFinishFailed = (errorInfo) => {
@@ -145,7 +153,21 @@ const LoanForm = () => {
           />
         </Form.Item>
 
-        <Form.List name="itemLoaned">
+        <Form.List
+          name="itemLoaned"
+          rules={[
+            {
+              required: true,
+              validator: async (_, itemLoaned) => {
+                if (!itemLoaned || itemLoaned.length < 1) {
+                  return Promise.reject(
+                    new Error("Please add at least one item."),
+                  );
+                }
+              },
+            },
+          ]}
+        >
           {(fields, { remove }, { errors }) => (
             <Form.Item label="Items Loaned">
               {fields.map((field) => {
@@ -179,7 +201,7 @@ const LoanForm = () => {
                       />
                     </Form.Item>
 
-                    {fields.length > 1 && !isActivityStarted && (
+                    {fields.length > 0 && !isActivityStarted && (
                       <MinusCircleOutlined
                         onClick={() => remove(field.name)}
                         style={{ marginLeft: 8, fontSize: 20 }}
@@ -232,10 +254,15 @@ const LoanForm = () => {
       <Modal
         title="Loan Item"
         open={isScanning}
-        onCancel={() => setIsScanning(false)}
+        onCancel={stopScanner}
         footer={[]}
+        destroyOnClose
       >
-        <Scanner onScan={handleScan} onError={handleScanError} />
+        <Scanner
+          onScan={handleScan}
+          onError={handleScanError}
+          paused={isScannerPaused}
+        />
       </Modal>
     </Spin>
   );
