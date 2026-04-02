@@ -18,11 +18,7 @@ import {
   saveToLocal,
   checkIfActivityHasStarted,
 } from "../../utils/localStorage";
-import {
-  getRowNumber,
-  getSFTChecklist,
-  updateSFT,
-} from "../../utils/googleSheetAPI";
+import { updateGoogleSheet } from "../../utils/googleSheetAPI";
 
 import "./LoanForm.css";
 
@@ -34,7 +30,6 @@ const LoanForm = () => {
     checkIfActivityHasStarted(),
   );
   const [isMessageSending, setIsMessageSending] = useState(false);
-  const [isModalShown, setIsModalShown] = useState(false);
   const [isLoadingChecklist, setIsLoadingChecklist] = useState(false);
   const [SFTChecklist, setSFTChecklist] = useState([]);
   const [checkedList, setCheckedList] = useState([]);
@@ -58,7 +53,8 @@ const LoanForm = () => {
   const onFinish = async (values) => {
     console.log(values);
     setFormValues(values);
-    setIsModalShown(true);
+    await updateGoogleSheet(values, CONSTANTS.COMMANDS.SIGN_OUT);
+    form.resetFields();
   };
 
   const startScan = () => {
@@ -75,9 +71,9 @@ const LoanForm = () => {
   const handleScan = (result) => {
     if (!result) return;
     console.log("Detected codes:", result);
-    const currentItems = new Set(form.getFieldValue("itemLoaned") || []);
+    const currentItems = new Set(form.getFieldValue("itemsLoaned") || []);
     currentItems.add(result[0].rawValue);
-    form.setFieldsValue({ itemLoaned: Array.from(currentItems) });
+    form.setFieldsValue({ itemsLoaned: Array.from(currentItems) });
     setIsScannerPaused(true);
     stopScanner();
   };
@@ -89,20 +85,6 @@ const LoanForm = () => {
 
   const onFinishFailed = (errorInfo) => {
     console.log("Failed:", errorInfo);
-  };
-
-  const startActivity = async () => {};
-  const onFinishActivity = async () => {};
-  const onChecklistChange = (list) => {
-    setCheckedList(list);
-  };
-  const onSubUnitChange = (e) => {
-    saveToLocal(CONSTANTS.FORM_ITEM_KEYS.SUB_UNIT, e);
-    if (e === CONSTANTS.COYS.HQ) {
-      setSubUnitLabel("Branch/ Department:");
-    } else {
-      setSubUnitLabel("Platoon/ Section:");
-    }
   };
 
   return (
@@ -141,7 +123,6 @@ const LoanForm = () => {
         >
           <Select
             disabled={isActivityStarted}
-            onChange={onSubUnitChange}
             placeholder="Select your sub-unit."
             options={[
               { value: CONSTANTS.COYS.HQ, label: CONSTANTS.COYS.HQ },
@@ -154,12 +135,12 @@ const LoanForm = () => {
         </Form.Item>
 
         <Form.List
-          name="itemLoaned"
+          name="itemsLoaned"
           rules={[
             {
               required: true,
-              validator: async (_, itemLoaned) => {
-                if (!itemLoaned || itemLoaned.length < 1) {
+              validator: async (_, itemsLoaned) => {
+                if (!itemsLoaned || itemsLoaned.length < 1) {
                   return Promise.reject(
                     new Error("Please add at least one item."),
                   );
@@ -195,7 +176,7 @@ const LoanForm = () => {
                       <Input
                         style={{ flex: 1 }}
                         value={
-                          form.getFieldValue("itemLoaned")?.[field.name] || ""
+                          form.getFieldValue("itemsLoaned")?.[field.name] || ""
                         }
                         disabled
                       />
@@ -230,21 +211,7 @@ const LoanForm = () => {
         {!isActivityStarted && (
           <Form.Item>
             <Button block type="primary" htmlType="submit">
-              Start Activity
-            </Button>
-          </Form.Item>
-        )}
-
-        {isActivityStarted && (
-          <Form.Item>
-            <Button
-              block
-              type="primary"
-              danger
-              onClick={onFinishActivity}
-              loading={isMessageSending}
-            >
-              Stop Activity
+              Loan Items
             </Button>
           </Form.Item>
         )}

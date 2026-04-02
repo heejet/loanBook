@@ -16,6 +16,11 @@ export const CONSTANTS = {
     CHARLIE: "CHARLIE",
     ME: "ME",
   },
+  COMMANDS: {
+    SIGN_IN: "SIGN_IN",
+    SIGN_OUT: "SIGN_OUT",
+    STOCK_TAKE: "STOCK_TAKE",
+  },
   SHEETS:
-    "https://script.google.com/macros/s/AKfycbw5IO_euAfjat8m-5DweRySM7Izof7NFAnsezQot3r2_W0kPZ-gBlxOyBy2LdZa_6lk/exec",
+    "https://script.google.com/macros/s/AKfycbxHq56CeH4un8b1xCujdgHwM_aL1fOrbbVB-XQ7yjQs5Qr7dCr86cGqFzMWNnYh71-I/exec",
 };
