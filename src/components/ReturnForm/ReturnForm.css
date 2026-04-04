@@ -1,0 +1,17 @@
+.SFTForm {
+  width: 80vw;
+}
+
+.checkbox-label {
+  white-space: pre-line;
+}
+
+.checkbox-label {
+  background-color: #f5f5f5;
+  padding: 8px 12px;
+  border-radius: 6px;
+  display: flex;
+  align-items: center;
+  margin-bottom: 4px;
+  cursor: pointer;
+}

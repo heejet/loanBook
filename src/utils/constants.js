@@ -21,6 +21,16 @@ export const CONSTANTS = {
     SIGN_OUT: "SIGN_OUT",
     STOCK_TAKE: "STOCK_TAKE",
   },
+  DECLARATION: {
+    LOAN: [
+      "I acknowledge receipt of the loaned items and accept full responsibility for their care and safekeeping.",
+      "I will account for all loaned items at all times and return them in good working condition.",
+      "I will use the items only for their intended purpose and will not misuse or tamper with them.",
+      "I will not connect any unauthorised devices or install unauthorised software on the loaned items.",
+      "I will not transfer or allow others to use the loaned items without prior approval.",
+      "I will report any loss, damage, or malfunction immediately.",
+    ],
+  },
   SHEETS:
-    "https://script.google.com/macros/s/AKfycbxHq56CeH4un8b1xCujdgHwM_aL1fOrbbVB-XQ7yjQs5Qr7dCr86cGqFzMWNnYh71-I/exec",
+    "https://script.google.com/macros/s/AKfycbx_uYXlHueh5LG5cDyd2ZyFhThseeMNxz4Gt58njx-kbgTDbXttINUAx0heZjDAenfn/exec",
 };

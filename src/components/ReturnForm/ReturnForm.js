@@ -1,40 +1,25 @@
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import {
   Button,
   Form,
   Input,
   Modal,
-  Checkbox,
   message,
   Select,
-  Spin,
 } from "antd";
 import { MinusCircleOutlined, PlusOutlined } from "@ant-design/icons";
-import { Scanner } from "@yudiel/react-qr-scanner"; // <-- import QR scanner
+import { Scanner } from "@yudiel/react-qr-scanner";
 
 import { CONSTANTS } from "../../utils/constants";
-import {
-  getFromLocal,
-  saveToLocal,
-  checkIfActivityHasStarted,
-} from "../../utils/localStorage";
+import { getFromLocal } from "../../utils/localStorage";
 import { updateGoogleSheet } from "../../utils/googleSheetAPI";
 
-import "./LoanForm.css";
+import "./ReturnForm.css";
 
 const LoanForm = () => {
   const [form] = Form.useForm();
   const [messageApi, contextHolder] = message.useMessage();
-
-  const [isActivityStarted, setIsActivityStarted] = useState(
-    checkIfActivityHasStarted(),
-  );
-  const [isMessageSending, setIsMessageSending] = useState(false);
-  const [isLoadingChecklist, setIsLoadingChecklist] = useState(false);
-  const [SFTChecklist, setSFTChecklist] = useState([]);
-  const [checkedList, setCheckedList] = useState([]);
-  const [formValues, setFormValues] = useState({});
-  const [subUnitLabel, setSubUnitLabel] = useState("Platoon/ Section:");
+  const [isSending, setIsSending] = useState(false);
 
   // QR scanner state
   const [isScanning, setIsScanning] = useState(false);
@@ -47,12 +32,9 @@ const LoanForm = () => {
       getFromLocal(CONSTANTS.FORM_ITEM_KEYS.PLATOON_SECTION) || "",
   };
 
-  useEffect(() => {}, []);
-
   /** Form handlers */
   const onFinish = async (values) => {
     console.log(values);
-    setFormValues(values);
     await updateGoogleSheet(values, CONSTANTS.COMMANDS.SIGN_OUT);
     form.resetFields();
   };
@@ -88,8 +70,7 @@ const LoanForm = () => {
   };
 
   return (
-    <Spin spinning={isLoadingChecklist}>
-      {contextHolder}
+    <div>
       <Form
         form={form}
         name="basic"
@@ -108,7 +89,7 @@ const LoanForm = () => {
             },
           ]}
         >
-          <Input placeholder="Enter rank/name" disabled={isActivityStarted} />
+          <Input placeholder="Enter rank/name" />
         </Form.Item>
 
         <Form.Item
@@ -122,7 +103,6 @@ const LoanForm = () => {
           ]}
         >
           <Select
-            disabled={isActivityStarted}
             placeholder="Select your sub-unit."
             options={[
               { value: CONSTANTS.COYS.HQ, label: CONSTANTS.COYS.HQ },
@@ -182,7 +162,7 @@ const LoanForm = () => {
                       />
                     </Form.Item>
 
-                    {fields.length > 0 && !isActivityStarted && (
+                    {fields.length > 0 && (
                       <MinusCircleOutlined
                         onClick={() => remove(field.name)}
                         style={{ marginLeft: 8, fontSize: 20 }}
@@ -198,7 +178,7 @@ const LoanForm = () => {
                   onClick={startScan}
                   style={{ width: "100%" }}
                   icon={<PlusOutlined />}
-                  disabled={isActivityStarted || isScanning}
+                  disabled={isScanning}
                 >
                   Add Item (Scan QR)
                 </Button>
@@ -208,16 +188,13 @@ const LoanForm = () => {
           )}
         </Form.List>
 
-        {!isActivityStarted && (
-          <Form.Item>
-            <Button block type="primary" htmlType="submit">
-              Loan Items
-            </Button>
-          </Form.Item>
-        )}
+        <Form.Item>
+          <Button block type="primary" htmlType="submit">
+            Loan Items
+          </Button>
+        </Form.Item>
       </Form>
 
-      {/* QR Scanner Modal */}
       <Modal
         title="Loan Item"
         open={isScanning}
@@ -231,7 +208,7 @@ const LoanForm = () => {
           paused={isScannerPaused}
         />
       </Modal>
-    </Spin>
+    </div>
   );
 };
 

@@ -1,5 +1,4 @@
 import { CONSTANTS } from "./constants";
-import { getFromLocal } from "./localStorage";
 
 export const updateGoogleSheet = async (data, command) => {
   try {
@@ -12,12 +11,20 @@ export const updateGoogleSheet = async (data, command) => {
       body: JSON.stringify({ command, ...data }),
     });
 
+    const text = await response.text();
+    console.log(text);
+    const hasError = text.trim().split(" ")[0] === "Error:";
+
     if (!response.ok) {
       throw new Error(`Server responded with status ${response.status}`);
     }
-    return true;
+
+    if (hasError) {
+      throw new Error(text);
+    }
+    return [true, ""];
   } catch (e) {
-    console.error("Failed to update SFT:", e.message);
-    return false;
+    console.error(e.message);
+    return [false, e.message];
   }
 };
