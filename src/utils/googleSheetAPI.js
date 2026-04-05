@@ -22,7 +22,7 @@ export const updateGoogleSheet = async (data, command) => {
     if (hasError) {
       throw new Error(text);
     }
-    return [true, ""];
+    return [true, text];
   } catch (e) {
     console.error(e.message);
     return [false, e.message];

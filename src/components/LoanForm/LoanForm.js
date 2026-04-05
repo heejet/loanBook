@@ -1,5 +1,14 @@
 import { useState } from "react";
-import { Button, Form, Input, Modal, message, Select, Checkbox } from "antd";
+import {
+  Button,
+  Form,
+  Input,
+  Modal,
+  message,
+  Select,
+  Checkbox,
+  Result,
+} from "antd";
 import { MinusCircleOutlined, PlusOutlined } from "@ant-design/icons";
 import { Scanner } from "@yudiel/react-qr-scanner";
 
@@ -16,6 +25,8 @@ const LoanForm = () => {
   const [isModalShown, setIsModalShown] = useState(false);
   const [checkedList, setCheckedList] = useState([]);
   const [formValues, setFormValues] = useState({});
+  const [isSuccessModalShown, setIsSuccessModalShown] = useState(false);
+  const [loanID, setLoanID] = useState("");
 
   // QR scanner state
   const [isScanning, setIsScanning] = useState(false);
@@ -41,14 +52,16 @@ const LoanForm = () => {
 
   const loanItems = async () => {
     setIsSending(true);
-    const [isSuccessful, errMessage] = await updateGoogleSheet(
+    const [isSuccessful, message] = await updateGoogleSheet(
       formValues,
       CONSTANTS.COMMANDS.SIGN_OUT,
     );
     if (!isSuccessful) {
-      messageApi.error(errMessage);
+      messageApi.error(message);
     } else {
       messageApi.success("Items successfully loaned out");
+      setLoanID(message);
+      setIsSuccessModalShown(true);
       form.resetFields();
     }
     setCheckedList([]);
@@ -250,6 +263,22 @@ const LoanForm = () => {
             </Checkbox>
           ))}
         </Checkbox.Group>
+      </Modal>
+
+      <Modal
+        open={isSuccessModalShown}
+        onCancel={() => setIsSuccessModalShown(false)}
+        footer={[]}
+      >
+        <Result
+          status="success"
+          title={`Successfully Loaned Items. [Loan ID: ${loanID}]`}
+          subTitle="Please keep a screenshot of this page."
+        >
+          {formValues.itemsLoaned?.map((item, index) => (
+            <div key={index}>{item}</div>
+          ))}
+        </Result>
       </Modal>
     </div>
   );

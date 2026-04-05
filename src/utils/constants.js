@@ -32,5 +32,5 @@ export const CONSTANTS = {
     ],
   },
   SHEETS:
-    "https://script.google.com/macros/s/AKfycbx_uYXlHueh5LG5cDyd2ZyFhThseeMNxz4Gt58njx-kbgTDbXttINUAx0heZjDAenfn/exec",
+    "https://script.google.com/macros/s/AKfycbxWI7Yz4xm3tvQHWMlAGQDW4VzVLbSTikh4bSdrhxpbsAT7wor9URpBw1ZcD2Mo5ylL/exec",
 };
