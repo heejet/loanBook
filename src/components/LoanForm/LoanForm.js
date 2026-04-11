@@ -25,6 +25,7 @@ const LoanForm = () => {
   const [isModalShown, setIsModalShown] = useState(false);
   const [checkedList, setCheckedList] = useState([]);
   const [formValues, setFormValues] = useState({});
+  const [fullSerialOfItemsLoaned, setFullSerialOfItemsLoaned] = useState([]);
   const [isSuccessModalShown, setIsSuccessModalShown] = useState(false);
   const [loanID, setLoanID] = useState("");
 
@@ -39,9 +40,35 @@ const LoanForm = () => {
       getFromLocal(CONSTANTS.FORM_ITEM_KEYS.PLATOON_SECTION) || "",
   };
 
+  const validateHandset = (itemsLoaned) => {
+    const set = new Set();
+    const serialsLoaned = [];
+
+    for (const item of itemsLoaned) {
+      const [, id] = item.split("_");
+      if (set.has(id)) {
+        set.delete(id);
+        serialsLoaned.push(id);
+      } else {
+        set.add(id);
+      }
+    }
+
+    return [set.size === 0, serialsLoaned];
+  };
+
   /** Form handlers */
   const onFinish = async (values) => {
     console.log(values);
+    const [isHandsetValid, serialsLoaned] = validateHandset(values.itemsLoaned);
+    if (!isHandsetValid) {
+      messageApi.error(
+        "Ensure that you have taken the correct MIFI for each Handset.",
+      );
+      return;
+    }
+    setFullSerialOfItemsLoaned(values.itemsLoaned);
+    values.itemsLoaned = serialsLoaned;
     setFormValues(values);
     setIsModalShown(true);
   };
@@ -85,7 +112,17 @@ const LoanForm = () => {
     console.log("Detected codes:", result);
     const currentItems = new Set(form.getFieldValue("itemsLoaned") || []);
     currentItems.add(result[0].rawValue);
-    form.setFieldsValue({ itemsLoaned: Array.from(currentItems) });
+
+    const sortedItems = Array.from(currentItems).sort((a, b) => {
+      const [nameA, idAStr] = a.split("_");
+      const [nameB, idBStr] = b.split("_");
+      const idA = Number(idAStr);
+      const idB = Number(idBStr);
+      if (idA !== idB) return idA - idB;
+      return nameA.localeCompare(nameB);
+    });
+
+    form.setFieldsValue({ itemsLoaned: sortedItems });
     setIsScannerPaused(true);
     stopScanner();
   };
@@ -275,7 +312,7 @@ const LoanForm = () => {
           title={`Successfully Loaned Items. [Loan ID: ${loanID}]`}
           subTitle="Please keep a screenshot of this page."
         >
-          {formValues.itemsLoaned?.map((item, index) => (
+          {fullSerialOfItemsLoaned?.map((item, index) => (
             <div key={index}>{item}</div>
           ))}
         </Result>
