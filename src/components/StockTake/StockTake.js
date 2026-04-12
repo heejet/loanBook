@@ -32,7 +32,7 @@ const StockTake = () => {
       id,
       mifi: false,
       handset: false,
-      remakrs: "",
+      remarks: "",
     })),
   );
   const [isSuccessModalShown, setIsSuccessModalShown] = useState(false);
@@ -83,8 +83,12 @@ const StockTake = () => {
       messageApi.error("Ensure that you entered the correct password.");
       return;
     }
-
+    setItemsAccounted(values.itemsAccounted);
     console.log(values);
+
+    //Send Report
+    setIsModalShown(false);
+    setIsSuccessModalShown(true);
   };
 
   const onAccountItems = () => {
@@ -302,15 +306,7 @@ const StockTake = () => {
         onCancel={() => setIsSuccessModalShown(false)}
         footer={[]}
       >
-        <Result
-          status="success"
-          title={`Successfully Received Items.`}
-          subTitle="Please keep a screenshot of this page."
-        >
-          {/* {fullSerialOfItemsLoaned?.map((item, index) => (
-            <div key={index}>{item}</div>
-          ))} */}
-        </Result>
+        <Result status="success" title={`Stocktake done successfully`}/>
       </Modal>
     </div>
   );
