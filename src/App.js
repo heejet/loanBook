@@ -4,6 +4,7 @@ import LoanForm from "./components/LoanForm/LoanForm";
 
 import "./App.css";
 import ReturnForm from "./components/ReturnForm/ReturnForm";
+import StockTake from "./components/StockTake/StockTake";
 
 const App = () => {
   return (
@@ -30,6 +31,11 @@ const App = () => {
                 key: "2",
                 label: "Receive",
                 children: <ReturnForm />,
+              },
+              {
+                key: "3",
+                label: "Stock Take",
+                children: <StockTake />,
               },
             ]}
           />
