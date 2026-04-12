@@ -1,25 +1,27 @@
 import { useState } from "react";
+import { Button, Form, Input, Modal, message, Select, Result } from "antd";
 import {
-  Button,
-  Form,
-  Input,
-  Modal,
-  message,
-  Select,
-} from "antd";
-import { MinusCircleOutlined, PlusOutlined } from "@ant-design/icons";
+  MinusCircleOutlined,
+  PlusOutlined,
+  LockOutlined,
+} from "@ant-design/icons";
 import { Scanner } from "@yudiel/react-qr-scanner";
+import SHA256 from "crypto-js/sha256";
 
 import { CONSTANTS } from "../../utils/constants";
 import { getFromLocal } from "../../utils/localStorage";
 import { updateGoogleSheet } from "../../utils/googleSheetAPI";
-
 import "./ReturnForm.css";
+import "antd/dist/reset.css";
 
-const LoanForm = () => {
+const ReturnForm = () => {
   const [form] = Form.useForm();
   const [messageApi, contextHolder] = message.useMessage();
   const [isSending, setIsSending] = useState(false);
+  const [fullSerialOfItemsLoaned, setFullSerialOfItemsLoaned] = useState([]);
+  const [isSuccessModalShown, setIsSuccessModalShown] = useState(false);
+
+  const idSet = new Set(CONSTANTS.HANDSETS);
 
   // QR scanner state
   const [isScanning, setIsScanning] = useState(false);
@@ -32,11 +34,78 @@ const LoanForm = () => {
       getFromLocal(CONSTANTS.FORM_ITEM_KEYS.PLATOON_SECTION) || "",
   };
 
+  const validateHandset = (itemsLoaned) => {
+    const set = new Set();
+    const serialsLoaned = [];
+
+    for (const item of itemsLoaned) {
+      const [, id] = item.split("_");
+      if (set.has(id)) {
+        set.delete(id);
+        serialsLoaned.push(id);
+      } else {
+        set.add(id);
+      }
+    }
+
+    return [set.size === 0, serialsLoaned];
+  };
+
+  const returnItems = async (values) => {
+    setIsSending(true);
+    const [isSuccessful, message] = await updateGoogleSheet(
+      values,
+      CONSTANTS.COMMANDS.SIGN_IN,
+    );
+    if (!isSuccessful) {
+      messageApi.error(message);
+    } else {
+      messageApi.success("Items successfully received.");
+      setIsSuccessModalShown(true);
+      form.resetFields();
+    }
+    setIsSending(false);
+  };
+
+  const checkPassword = (text) => {
+    const hash = SHA256(text).toString();
+
+    return hash === CONSTANTS.PASSWORDS.RECEIVER;
+  };
+
   /** Form handlers */
   const onFinish = async (values) => {
     console.log(values);
-    await updateGoogleSheet(values, CONSTANTS.COMMANDS.SIGN_OUT);
-    form.resetFields();
+    const isPasswordCorrect = checkPassword(values.password);
+
+    if (!isPasswordCorrect) {
+      messageApi.error(
+        "Ensure that you entered the correct password.",
+      );
+      return;
+    }
+
+    const [isHandsetValid, serialsLoaned] = validateHandset(values.itemsLoaned);
+    if (!isHandsetValid) {
+      messageApi.error(
+        "Ensure that you have taken the correct MIFI for each Handset.",
+      );
+      return;
+    }
+    setFullSerialOfItemsLoaned(values.itemsLoaned);
+    values.itemsLoaned = serialsLoaned;
+    await returnItems(values);
+  };
+
+  const checkIsValidItem = (text) => {
+    if (typeof text !== "string") return false;
+
+    const match = text.match(/^(MIFI|HANDSET)_(\d+)$/);
+    if (!match) return false;
+
+    const id = Number(match[2]);
+
+    return idSet.has(id);
   };
 
   const startScan = () => {
@@ -53,9 +122,26 @@ const LoanForm = () => {
   const handleScan = (result) => {
     if (!result) return;
     console.log("Detected codes:", result);
-    const currentItems = new Set(form.getFieldValue("itemsLoaned") || []);
-    currentItems.add(result[0].rawValue);
-    form.setFieldsValue({ itemsLoaned: Array.from(currentItems) });
+    const isValidItem = checkIsValidItem(result[0].rawValue);
+
+    if (isValidItem) {
+      const currentItems = new Set(form.getFieldValue("itemsLoaned") || []);
+      currentItems.add(result[0].rawValue);
+
+      const sortedItems = Array.from(currentItems).sort((a, b) => {
+        const [nameA, idAStr] = a.split("_");
+        const [nameB, idBStr] = b.split("_");
+        const idA = Number(idAStr);
+        const idB = Number(idBStr);
+        if (idA !== idB) return idA - idB;
+        return nameA.localeCompare(nameB);
+      });
+
+      form.setFieldsValue({ itemsLoaned: sortedItems });
+      messageApi.success(`Successfully added ${result[0].rawValue}.`);
+    } else {
+      messageApi.error("Unknown device detected.");
+    }
     setIsScannerPaused(true);
     stopScanner();
   };
@@ -71,9 +157,10 @@ const LoanForm = () => {
 
   return (
     <div>
+      {contextHolder}
       <Form
         form={form}
-        name="basic"
+        name="return"
         initialValues={initialValues}
         onFinish={onFinish}
         onFinishFailed={onFinishFailed}
@@ -89,7 +176,13 @@ const LoanForm = () => {
             },
           ]}
         >
-          <Input placeholder="Enter rank/name" />
+          <Input
+            onChange={(e) => {
+              const value = e.target.value.toUpperCase();
+              form.setFieldsValue({ rankName: value });
+            }}
+            placeholder="Enter rank/name"
+          />
         </Form.Item>
 
         <Form.Item
@@ -114,6 +207,22 @@ const LoanForm = () => {
           />
         </Form.Item>
 
+        <Form.Item
+          label="Password"
+          name="password"
+          rules={[
+            {
+              required: true,
+              message: "Please enter your password.",
+            },
+          ]}
+        >
+          <Input.Password
+            suffix={<LockOutlined />}
+            placeholder="input password support suffix"
+          />
+        </Form.Item>
+
         <Form.List
           name="itemsLoaned"
           rules={[
@@ -130,7 +239,7 @@ const LoanForm = () => {
           ]}
         >
           {(fields, { remove }, { errors }) => (
-            <Form.Item label="Items Loaned">
+            <Form.Item label="Items Received">
               {fields.map((field) => {
                 const { key, ...fieldProps } = field;
                 return (
@@ -189,8 +298,14 @@ const LoanForm = () => {
         </Form.List>
 
         <Form.Item>
-          <Button block type="primary" htmlType="submit">
-            Loan Items
+          <Button
+            block
+            color="cyan"
+            variant="solid"
+            htmlType="submit"
+            loading={isSending}
+          >
+            Receive Items
           </Button>
         </Form.Item>
       </Form>
@@ -200,7 +315,7 @@ const LoanForm = () => {
         open={isScanning}
         onCancel={stopScanner}
         footer={[]}
-        destroyOnClose
+        destroyOnHidden
       >
         <Scanner
           onScan={handleScan}
@@ -208,8 +323,24 @@ const LoanForm = () => {
           paused={isScannerPaused}
         />
       </Modal>
+
+      <Modal
+        open={isSuccessModalShown}
+        onCancel={() => setIsSuccessModalShown(false)}
+        footer={[]}
+      >
+        <Result
+          status="success"
+          title={`Successfully Received Items.`}
+          subTitle="Please keep a screenshot of this page."
+        >
+          {fullSerialOfItemsLoaned?.map((item, index) => (
+            <div key={index}>{item}</div>
+          ))}
+        </Result>
+      </Modal>
     </div>
   );
 };
 
-export default LoanForm;
+export default ReturnForm;

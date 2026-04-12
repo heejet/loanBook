@@ -29,6 +29,8 @@ const LoanForm = () => {
   const [isSuccessModalShown, setIsSuccessModalShown] = useState(false);
   const [loanID, setLoanID] = useState("");
 
+  const idSet = new Set(CONSTANTS.HANDSETS);
+
   // QR scanner state
   const [isScanning, setIsScanning] = useState(false);
   const [isScannerPaused, setIsScannerPaused] = useState(true);
@@ -96,6 +98,17 @@ const LoanForm = () => {
     setIsModalShown(false);
   };
 
+  const checkIsValidItem = (text) => {
+    if (typeof text !== "string") return false;
+
+    const match = text.match(/^(MIFI|HANDSET)_(\d+)$/);
+    if (!match) return false;
+
+    const id = Number(match[2]);
+
+    return idSet.has(id);
+  };
+
   const startScan = () => {
     setIsScannerPaused(false);
     setIsScanning(true);
@@ -110,19 +123,26 @@ const LoanForm = () => {
   const handleScan = (result) => {
     if (!result) return;
     console.log("Detected codes:", result);
-    const currentItems = new Set(form.getFieldValue("itemsLoaned") || []);
-    currentItems.add(result[0].rawValue);
+    const isValidItem = checkIsValidItem(result[0].rawValue);
 
-    const sortedItems = Array.from(currentItems).sort((a, b) => {
-      const [nameA, idAStr] = a.split("_");
-      const [nameB, idBStr] = b.split("_");
-      const idA = Number(idAStr);
-      const idB = Number(idBStr);
-      if (idA !== idB) return idA - idB;
-      return nameA.localeCompare(nameB);
-    });
+    if (isValidItem) {
+      const currentItems = new Set(form.getFieldValue("itemsLoaned") || []);
+      currentItems.add(result[0].rawValue);
 
-    form.setFieldsValue({ itemsLoaned: sortedItems });
+      const sortedItems = Array.from(currentItems).sort((a, b) => {
+        const [nameA, idAStr] = a.split("_");
+        const [nameB, idBStr] = b.split("_");
+        const idA = Number(idAStr);
+        const idB = Number(idBStr);
+        if (idA !== idB) return idA - idB;
+        return nameA.localeCompare(nameB);
+      });
+
+      form.setFieldsValue({ itemsLoaned: sortedItems });
+      messageApi.success(`Successfully added ${result[0].rawValue}.`);
+    } else {
+      messageApi.error("Unknown device detected.");
+    }
     setIsScannerPaused(true);
     stopScanner();
   };
@@ -157,7 +177,13 @@ const LoanForm = () => {
             },
           ]}
         >
-          <Input placeholder="Enter rank/name" />
+          <Input
+            onChange={(e) => {
+              const value = e.target.value.toUpperCase();
+              form.setFieldsValue({ rankName: value });
+            }}
+            placeholder="Enter rank/name"
+          />
         </Form.Item>
 
         <Form.Item
@@ -268,7 +294,7 @@ const LoanForm = () => {
         open={isScanning}
         onCancel={stopScanner}
         footer={[]}
-        destroyOnClose
+        destroyOnHidden
       >
         <Scanner
           onScan={handleScan}
