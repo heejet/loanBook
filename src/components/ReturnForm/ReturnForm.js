@@ -1,10 +1,6 @@
 import { useState } from "react";
 import { Button, Form, Input, Modal, message, Select, Result } from "antd";
-import {
-  MinusCircleOutlined,
-  PlusOutlined,
-  LockOutlined,
-} from "@ant-design/icons";
+import { MinusCircleOutlined, PlusOutlined } from "@ant-design/icons";
 import { Scanner } from "@yudiel/react-qr-scanner";
 import SHA256 from "crypto-js/sha256";
 
@@ -79,9 +75,7 @@ const ReturnForm = () => {
     const isPasswordCorrect = checkPassword(values.password);
 
     if (!isPasswordCorrect) {
-      messageApi.error(
-        "Ensure that you entered the correct password.",
-      );
+      messageApi.error("Ensure that you entered the correct password.");
       return;
     }
 
@@ -217,10 +211,7 @@ const ReturnForm = () => {
             },
           ]}
         >
-          <Input.Password
-            suffix={<LockOutlined />}
-            placeholder="input password support suffix"
-          />
+          <Input.Password placeholder="input password support suffix" />
         </Form.Item>
 
         <Form.List

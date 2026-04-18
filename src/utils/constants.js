@@ -54,5 +54,5 @@ export const CONSTANTS = {
       "8ebd449afedf357eb250d7a22991fb75560af9d0e5646e975b4eb47df8fcfeb9",
   },
   SHEETS:
-    "https://script.google.com/macros/s/AKfycbzUKQ9AzmdVTM4zBgvVUrCCA0ZOhVV728zhdyLsWLlWenou8TFcz1ZFsetISxLyWAyU/exec",
+    "https://script.google.com/macros/s/AKfycbwIzZFVpkefeMSGUtTZ3vf99C6dOJi1Hw61A8bqgwrg9LxfHfWT57eQg_CK6ZLamJjD/exec",
 };

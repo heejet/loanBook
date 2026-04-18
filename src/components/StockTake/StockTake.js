@@ -8,8 +8,9 @@ import {
   Select,
   Result,
   Divider,
-  Card,
   Tag,
+  Carousel,
+  Card,
 } from "antd";
 import { LockOutlined } from "@ant-design/icons";
 import { Scanner } from "@yudiel/react-qr-scanner";
@@ -37,36 +38,39 @@ const StockTake = () => {
   );
   const [isSuccessModalShown, setIsSuccessModalShown] = useState(false);
   const [isModalShown, setIsModalShown] = useState(false);
+  const [stockTakeID, setStockTakeID] = useState("");
 
   // QR scanner state
-  const [isScanning, setIsScanning] = useState(false);
-  const [isScannerPaused, setIsScannerPaused] = useState(false);
+  const [isScannerPaused, setIsScannerPaused] = useState(true);
 
   const initialValues = {
     rankName: getFromLocal(CONSTANTS.FORM_ITEM_KEYS.RANK_NAME) || "",
     subUnit: getFromLocal(CONSTANTS.FORM_ITEM_KEYS.SUB_UNIT) || "",
     platoonSection:
       getFromLocal(CONSTANTS.FORM_ITEM_KEYS.PLATOON_SECTION) || "",
+    itemsAccounted: itemsAccounted,
   };
 
   const renderStatus = (value) => (
     <Tag color={value ? "green" : "red"}>{value ? "✓" : "✕"}</Tag>
   );
 
-  const returnItems = async (values) => {
+  const sendStockTake = async (values) => {
     setIsSending(true);
     const [isSuccessful, message] = await updateGoogleSheet(
       values,
-      CONSTANTS.COMMANDS.SIGN_IN,
+      CONSTANTS.COMMANDS.STOCK_TAKE,
     );
     if (!isSuccessful) {
       messageApi.error(message);
     } else {
-      messageApi.success("Items successfully received.");
+      messageApi.success("Stock Take successfully logged.");
+      setStockTakeID(message);
       setIsSuccessModalShown(true);
       form.resetFields();
     }
     setIsSending(false);
+    setIsModalShown(false);
   };
 
   const checkPassword = (text) => {
@@ -83,12 +87,10 @@ const StockTake = () => {
       messageApi.error("Ensure that you entered the correct password.");
       return;
     }
+    setIsScannerPaused(true);
     setItemsAccounted(values.itemsAccounted);
     console.log(values);
-
-    //Send Report
-    setIsModalShown(false);
-    setIsSuccessModalShown(true);
+    await sendStockTake(values);
   };
 
   const onAccountItems = () => {
@@ -98,46 +100,53 @@ const StockTake = () => {
     setIsModalShown(true);
   };
 
-  const stopScanner = () => {
-    setIsScanning(false);
-    setIsScannerPaused(true);
-    console.log("Scanner paused");
-  };
-
   const handleScan = (result) => {
     if (!result) return;
 
-    console.log("Detected codes:", result);
     const value = result[0].rawValue;
-
     const [type, id] = value.split("_");
-    setItemsAccounted((prev) => {
-      const existing = prev.some((item) => String(item.id) === id);
+    const key = type?.toLowerCase();
 
-      if (existing) {
-        // messageApi.success(`Successfully added ${value}.`);
-        setNumHandset((prev) => prev + 1);
-        setNumMIFI((prev) => prev + 1);
-        const updated = prev.map((item) => {
-          if (String(item.id) === id) {
-            return {
-              ...item,
-              [type.toLowerCase()]: true,
-            };
+    setItemsAccounted((prev) => {
+      let isDuplicate = false;
+      let found = false;
+
+      const updated = prev.map((item) => {
+        if (String(item.id) === id) {
+          found = true;
+          if (item[key]) {
+            isDuplicate = true;
+            return item;
           }
-          return item;
-        });
-        return updated;
+
+          if (type === "HANDSET") {
+            setNumHandset((p) => p + 1);
+          } else if (type === "MIFI") {
+            setNumMIFI((p) => p + 1);
+          }
+
+          return {
+            ...item,
+            [key]: true,
+          };
+        }
+        console.log(itemsAccounted);
+        return item;
+      });
+
+      if (!found) {
+        return prev;
       }
-      // messageApi.error("Unknown item added.");
-      return prev;
+
+      if (isDuplicate) {
+        return prev;
+      }
+      return updated;
     });
-    console.log(itemsAccounted);
   };
 
   const handleScanError = (error) => {
     console.error(error);
-    stopScanner();
   };
 
   const onFinishFailed = (errorInfo) => {
@@ -148,6 +157,15 @@ const StockTake = () => {
     <div>
       {contextHolder}
       <div style={{ width: "80vw", margin: "0 auto" }}>
+        <Button
+          block
+          type={isScannerPaused ? "primary" : ""}
+          variant="solid"
+          onClick={() => setIsScannerPaused((p) => !p)}
+        >
+          {isScannerPaused ? "Start Scanner" : "Stop Scanner"}
+        </Button>
+        <Divider style={{ borderColor: "#000000" }} />
         <Scanner
           scanDelay={800}
           onScan={handleScan}
@@ -157,18 +175,32 @@ const StockTake = () => {
         <Divider style={{ borderColor: "#000000" }} />
         <h3>{`${numHandSet}/100 Handsets Accounted.`}</h3>
         <h3>{`${numMIFI}/100 MIFI Accounted.`}</h3>
-        <Divider style={{ borderColor: "#000000" }} />
-        <Card>
-          {itemsAccounted.map((item, index) => (
-            <div key={item.id}>
-              {index + 1}. {item.id}: HANDSET {renderStatus(item.handset)}, MIFI{" "}
-              {renderStatus(item.mifi)}
-            </div>
-          ))}
-        </Card>
         <Button block color="red" variant="solid" onClick={onAccountItems}>
           Account Items
         </Button>
+        <Divider style={{ borderColor: "#000000" }} />
+        <Carousel arrows infinite={false}>
+          <div>
+            <Card title="Handsets and MIFIs:">
+              {itemsAccounted.map((item, index) => (
+                <div key={item.id}>
+                  {index + 1}. {item.id}: HANDSET {renderStatus(item.handset)},
+                  MIFI {renderStatus(item.mifi)}
+                </div>
+              ))}
+            </Card>
+          </div>
+          <div>
+            <Card title="Power Banks:">
+              {itemsAccounted.map((item, index) => (
+                <div key={item.id}>
+                  {index + 1}. {item.id}: HANDSET {renderStatus(item.handset)},
+                  MIFI {renderStatus(item.mifi)}
+                </div>
+              ))}
+            </Card>
+          </div>
+        </Carousel>
       </div>
       <Modal
         open={isModalShown}
@@ -254,12 +286,13 @@ const StockTake = () => {
                   if (!item) return null;
 
                   const { id, handset, mifi } = item;
-
-                  // hide fully accounted items
-                  if (handset && mifi) return null;
+                  const isCompleted = handset && mifi;
 
                   return (
-                    <div key={field.key}>
+                    <div
+                      key={field.key}
+                      style={{ display: isCompleted ? "none" : "block" }}
+                    >
                       <Form.Item name={[field.name, "id"]} hidden>
                         <Input />
                       </Form.Item>
@@ -276,7 +309,10 @@ const StockTake = () => {
                         label={`ID: ${id} | H: ${handset ? "✓" : "✕"} | M: ${mifi ? "✓" : "✕"}`}
                         name={[field.name, "remarks"]}
                         rules={[
-                          { required: true, message: "Please enter remarks" },
+                          {
+                            required: !isCompleted,
+                            message: "Please enter remarks",
+                          },
                         ]}
                       >
                         <Input placeholder="Input Remarks" />
@@ -306,7 +342,15 @@ const StockTake = () => {
         onCancel={() => setIsSuccessModalShown(false)}
         footer={[]}
       >
-        <Result status="success" title={`Stocktake done successfully`}/>
+        <Result
+          status="success"
+          title={`Stocktake done successfully. [Stock Take ID: ${stockTakeID}]`}
+          subTitle="Please keep a screenshot of this page."
+        />
+        <Divider style={{ borderColor: "#000000" }} />
+        <h3>{`${numHandSet}/100 Handsets Accounted.`}</h3>
+        <h3>{`${numMIFI}/100 MIFI Accounted.`}</h3>
+        <Divider style={{ borderColor: "#000000" }} />
       </Modal>
     </div>
   );
