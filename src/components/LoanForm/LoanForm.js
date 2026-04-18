@@ -13,7 +13,6 @@ import { MinusCircleOutlined, PlusOutlined } from "@ant-design/icons";
 import { Scanner } from "@yudiel/react-qr-scanner";
 
 import { CONSTANTS } from "../../utils/constants";
-import { getFromLocal } from "../../utils/localStorage";
 import { updateGoogleSheet } from "../../utils/googleSheetAPI";
 
 import "./LoanForm.css";
@@ -29,25 +28,22 @@ const LoanForm = () => {
   const [isSuccessModalShown, setIsSuccessModalShown] = useState(false);
   const [loanID, setLoanID] = useState("");
 
-  const idSet = new Set(CONSTANTS.HANDSETS);
-
   // QR scanner state
   const [isScanning, setIsScanning] = useState(false);
   const [isScannerPaused, setIsScannerPaused] = useState(true);
 
-  const initialValues = {
-    rankName: getFromLocal(CONSTANTS.FORM_ITEM_KEYS.RANK_NAME) || "",
-    subUnit: getFromLocal(CONSTANTS.FORM_ITEM_KEYS.SUB_UNIT) || "",
-    platoonSection:
-      getFromLocal(CONSTANTS.FORM_ITEM_KEYS.PLATOON_SECTION) || "",
-  };
+  const initialValues = {};
 
   const validateHandset = (itemsLoaned) => {
     const set = new Set();
     const serialsLoaned = [];
 
     for (const item of itemsLoaned) {
-      const [, id] = item.split("_");
+      const [prefix, id] = item.split("_");
+      if (prefix === "POWERBANK") {
+        serialsLoaned.push(id);
+        continue;
+      }
       if (set.has(id)) {
         set.delete(id);
         serialsLoaned.push(id);
@@ -101,12 +97,21 @@ const LoanForm = () => {
   const checkIsValidItem = (text) => {
     if (typeof text !== "string") return false;
 
-    const match = text.match(/^(MIFI|HANDSET)_(\d+)$/);
+    const match = text.match(/^(MIFI|HANDSET|POWERBANK)_(\d+)$/);
     if (!match) return false;
 
-    const id = Number(match[2]);
+    const type = match[1];
+    const id = String(match[2]);
 
-    return idSet.has(id);
+    if (type === "HANDSET" || type === "MIFI") {
+      return CONSTANTS.HANDSETS.includes(id);
+    }
+
+    if (type === "POWERBANK") {
+      return CONSTANTS.POWER_BANKS.includes(id);
+    }
+
+    return false;
   };
 
   const startScan = () => {
@@ -198,13 +203,10 @@ const LoanForm = () => {
         >
           <Select
             placeholder="Select your sub-unit."
-            options={[
-              { value: CONSTANTS.COYS.HQ, label: CONSTANTS.COYS.HQ },
-              { value: CONSTANTS.COYS.ALPHA, label: CONSTANTS.COYS.ALPHA },
-              { value: CONSTANTS.COYS.BRAVO, label: CONSTANTS.COYS.BRAVO },
-              { value: CONSTANTS.COYS.CHARLIE, label: CONSTANTS.COYS.CHARLIE },
-              { value: CONSTANTS.COYS.ME, label: CONSTANTS.COYS.ME },
-            ]}
+            options={CONSTANTS.COYS.map((item) => ({
+              value: item,
+              label: item,
+            }))}
           />
         </Form.Item>
 

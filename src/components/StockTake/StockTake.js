@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import {
   Button,
   Form,
@@ -12,30 +12,38 @@ import {
   Carousel,
   Card,
 } from "antd";
-import { LockOutlined } from "@ant-design/icons";
 import { Scanner } from "@yudiel/react-qr-scanner";
 import SHA256 from "crypto-js/sha256";
 
 import { CONSTANTS } from "../../utils/constants";
-import { getFromLocal } from "../../utils/localStorage";
 import { updateGoogleSheet } from "../../utils/googleSheetAPI";
 import "./StockTake.css";
 import "antd/dist/reset.css";
 
 const StockTake = () => {
+  const initialItemsAccounted = CONSTANTS.HANDSETS.map((id) => ({
+    id,
+    mifi: false,
+    handset: false,
+    remarks: "",
+  }));
+
+  const initialPowerBanks = CONSTANTS.POWER_BANKS.map((id) => ({
+    id,
+    powerbank: false,
+    remarks: "",
+  }));
+
   const [form] = Form.useForm();
   const [messageApi, contextHolder] = message.useMessage();
   const [numHandSet, setNumHandset] = useState(0);
   const [numMIFI, setNumMIFI] = useState(0);
+  const [numPowerBanks, setNumPowerBanks] = useState(0);
+
   const [isSending, setIsSending] = useState(false);
-  const [itemsAccounted, setItemsAccounted] = useState(
-    CONSTANTS.HANDSETS.map((id) => ({
-      id,
-      mifi: false,
-      handset: false,
-      remarks: "",
-    })),
-  );
+  const [itemsAccounted, setItemsAccounted] = useState(initialItemsAccounted);
+  const [powerBanksAccounted, setPowerBanksAccounted] =
+    useState(initialPowerBanks);
   const [isSuccessModalShown, setIsSuccessModalShown] = useState(false);
   const [isModalShown, setIsModalShown] = useState(false);
   const [stockTakeID, setStockTakeID] = useState("");
@@ -44,16 +52,30 @@ const StockTake = () => {
   const [isScannerPaused, setIsScannerPaused] = useState(true);
 
   const initialValues = {
-    rankName: getFromLocal(CONSTANTS.FORM_ITEM_KEYS.RANK_NAME) || "",
-    subUnit: getFromLocal(CONSTANTS.FORM_ITEM_KEYS.SUB_UNIT) || "",
-    platoonSection:
-      getFromLocal(CONSTANTS.FORM_ITEM_KEYS.PLATOON_SECTION) || "",
     itemsAccounted: itemsAccounted,
+    powerBanksAccounted: powerBanksAccounted,
   };
 
   const renderStatus = (value) => (
     <Tag color={value ? "green" : "red"}>{value ? "✓" : "✕"}</Tag>
   );
+
+  const handSetAndMIFIList = useMemo(() => {
+    return itemsAccounted.map((item, index) => (
+      <div key={item.id}>
+        {index + 1}. {item.id}: HANDSET {renderStatus(item.handset)}, MIFI{" "}
+        {renderStatus(item.mifi)}
+      </div>
+    ));
+  }, [itemsAccounted]);
+
+  const powerBankList = useMemo(() => {
+    return powerBanksAccounted.map((item, index) => (
+      <div key={item.id}>
+        {index + 1}. {item.id}: POWER BANK {renderStatus(item.powerbank)}
+      </div>
+    ));
+  }, [powerBanksAccounted]);
 
   const sendStockTake = async (values) => {
     setIsSending(true);
@@ -67,7 +89,10 @@ const StockTake = () => {
       messageApi.success("Stock Take successfully logged.");
       setStockTakeID(message);
       setIsSuccessModalShown(true);
+
       form.resetFields();
+      setItemsAccounted(initialItemsAccounted);
+      setPowerBanksAccounted(initialItemsAccounted);
     }
     setIsSending(false);
     setIsModalShown(false);
@@ -76,7 +101,7 @@ const StockTake = () => {
   const checkPassword = (text) => {
     const hash = SHA256(text).toString();
 
-    return hash === CONSTANTS.PASSWORDS.RECEIVER;
+    return hash === CONSTANTS.PASSWORDS.ACCOUNTER;
   };
 
   /** Form handlers */
@@ -89,6 +114,7 @@ const StockTake = () => {
     }
     setIsScannerPaused(true);
     setItemsAccounted(values.itemsAccounted);
+    setPowerBanksAccounted(values.powerBanksAccounted);
     console.log(values);
     await sendStockTake(values);
   };
@@ -96,6 +122,7 @@ const StockTake = () => {
   const onAccountItems = () => {
     form.setFieldsValue({
       itemsAccounted: itemsAccounted,
+      powerBanksAccounted: powerBanksAccounted,
     });
     setIsModalShown(true);
   };
@@ -143,6 +170,41 @@ const StockTake = () => {
       }
       return updated;
     });
+
+    setPowerBanksAccounted((prev) => {
+      let isDuplicate = false;
+      let found = false;
+
+      const updated = prev.map((item) => {
+        if (String(item.id) === id) {
+          found = true;
+          if (item[key]) {
+            isDuplicate = true;
+            return item;
+          }
+
+          if (type === "POWERBANK") {
+            setNumPowerBanks((p) => p + 1);
+          }
+
+          return {
+            ...item,
+            [key]: true,
+          };
+        }
+        console.log(powerBanksAccounted);
+        return item;
+      });
+
+      if (!found) {
+        return prev;
+      }
+
+      if (isDuplicate) {
+        return prev;
+      }
+      return updated;
+    });
   };
 
   const handleScanError = (error) => {
@@ -175,30 +237,17 @@ const StockTake = () => {
         <Divider style={{ borderColor: "#000000" }} />
         <h3>{`${numHandSet}/100 Handsets Accounted.`}</h3>
         <h3>{`${numMIFI}/100 MIFI Accounted.`}</h3>
+        <h3>{`${numPowerBanks}/100 Power Banks Accounted.`}</h3>
         <Button block color="red" variant="solid" onClick={onAccountItems}>
           Account Items
         </Button>
         <Divider style={{ borderColor: "#000000" }} />
         <Carousel arrows infinite={false}>
           <div>
-            <Card title="Handsets and MIFIs:">
-              {itemsAccounted.map((item, index) => (
-                <div key={item.id}>
-                  {index + 1}. {item.id}: HANDSET {renderStatus(item.handset)},
-                  MIFI {renderStatus(item.mifi)}
-                </div>
-              ))}
-            </Card>
+            <Card title="Handsets and MIFIs:">{handSetAndMIFIList}</Card>
           </div>
           <div>
-            <Card title="Power Banks:">
-              {itemsAccounted.map((item, index) => (
-                <div key={item.id}>
-                  {index + 1}. {item.id}: HANDSET {renderStatus(item.handset)},
-                  MIFI {renderStatus(item.mifi)}
-                </div>
-              ))}
-            </Card>
+            <Card title="Power Banks:">{powerBankList}</Card>
           </div>
         </Carousel>
       </div>
@@ -246,16 +295,10 @@ const StockTake = () => {
           >
             <Select
               placeholder="Select your sub-unit."
-              options={[
-                { value: CONSTANTS.COYS.HQ, label: CONSTANTS.COYS.HQ },
-                { value: CONSTANTS.COYS.ALPHA, label: CONSTANTS.COYS.ALPHA },
-                { value: CONSTANTS.COYS.BRAVO, label: CONSTANTS.COYS.BRAVO },
-                {
-                  value: CONSTANTS.COYS.CHARLIE,
-                  label: CONSTANTS.COYS.CHARLIE,
-                },
-                { value: CONSTANTS.COYS.ME, label: CONSTANTS.COYS.ME },
-              ]}
+              options={CONSTANTS.COYS.map((item) => ({
+                value: item,
+                label: item,
+              }))}
             />
           </Form.Item>
 
@@ -269,10 +312,7 @@ const StockTake = () => {
               },
             ]}
           >
-            <Input.Password
-              suffix={<LockOutlined />}
-              placeholder="input password support suffix"
-            />
+            <Input.Password placeholder="input password support suffix" />
           </Form.Item>
           <Form.List name="itemsAccounted">
             {(fields) => (
@@ -306,7 +346,52 @@ const StockTake = () => {
                       </Form.Item>
 
                       <Form.Item
-                        label={`ID: ${id} | H: ${handset ? "✓" : "✕"} | M: ${mifi ? "✓" : "✕"}`}
+                        label={`ID: ${id} | HANDSET: ${handset ? "✓" : "✕"} | MIFI: ${mifi ? "✓" : "✕"}`}
+                        name={[field.name, "remarks"]}
+                        rules={[
+                          {
+                            required: !isCompleted,
+                            message: "Please enter remarks",
+                          },
+                        ]}
+                      >
+                        <Input placeholder="Input Remarks" />
+                      </Form.Item>
+                    </div>
+                  );
+                })}
+              </>
+            )}
+          </Form.List>
+          <Form.List name="powerBanksAccounted">
+            {(fields) => (
+              <>
+                {fields.map((field) => {
+                  const item = form.getFieldValue([
+                    "powerBanksAccounted",
+                    field.name,
+                  ]);
+
+                  if (!item) return null;
+
+                  const { id, powerbank } = item;
+                  const isCompleted = powerbank;
+
+                  return (
+                    <div
+                      key={field.key}
+                      style={{ display: isCompleted ? "none" : "block" }}
+                    >
+                      <Form.Item name={[field.name, "id"]} hidden>
+                        <Input />
+                      </Form.Item>
+
+                      <Form.Item name={[field.name, "powerbank"]} hidden>
+                        <Input />
+                      </Form.Item>
+
+                      <Form.Item
+                        label={`ID: ${id} | POWER BANK: ${powerbank ? "✓" : "✕"}`}
                         name={[field.name, "remarks"]}
                         rules={[
                           {
@@ -339,7 +424,13 @@ const StockTake = () => {
 
       <Modal
         open={isSuccessModalShown}
-        onCancel={() => setIsSuccessModalShown(false)}
+        onCancel={() => {
+          setNumHandset(0);
+          setNumMIFI(0);
+          setNumPowerBanks(0);
+          setIsSuccessModalShown(false);
+          window.location.reload();
+        }}
         footer={[]}
       >
         <Result
@@ -350,6 +441,8 @@ const StockTake = () => {
         <Divider style={{ borderColor: "#000000" }} />
         <h3>{`${numHandSet}/100 Handsets Accounted.`}</h3>
         <h3>{`${numMIFI}/100 MIFI Accounted.`}</h3>
+        <h3>{`${numPowerBanks}/100 Power Banks Accounted.`}</h3>
+
         <Divider style={{ borderColor: "#000000" }} />
       </Modal>
     </div>
