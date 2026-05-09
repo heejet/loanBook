@@ -28,3 +28,20 @@ export const updateGoogleSheet = async (data, command) => {
     return [false, e.message];
   }
 };
+
+export const getList = async (url) => {
+  url += `?action=GET_CHECKLIST`;
+  try {
+    const response = await fetch(url);
+    if (!response.ok) {
+      throw new Error("Network response was not ok");
+    }
+
+    const data = await response.json();
+    // console.log("Data:", data.data);
+
+    return data.data;
+  } catch (error) {
+    console.error("Fetch error:", error);
+  }
+};

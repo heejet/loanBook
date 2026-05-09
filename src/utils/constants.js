@@ -1,5 +1,5 @@
 export const CONSTANTS = {
-  COYS: ["HQ", "ALPHA", "BRAVO", "SUPPORT", "OTHERS"],
+  COYS: ["BDE_HQ", "35_HQ", "35_ALPHA", "35_SUPPORT", ],
   COMMANDS: {
     SIGN_IN: "SIGN_IN",
     SIGN_OUT: "SIGN_OUT",
@@ -226,5 +226,5 @@ export const CONSTANTS = {
       "ab8b560c69c138122acc409607e53a973bc381fcee9450787b06e44b16b6c912",
   },
   SHEETS:
-    "https://script.google.com/macros/s/AKfycby0jWRtoqc-8oqcTOSccoxikMOKP5-VSafHDfIXLCqu1NG2K56vFy4z9ZkBa0SH0Xr9/exec",
+    "https://script.google.com/macros/s/AKfycbzY7SbzB8RHskVXOEHMqRrJTpWdDY8q8eaabAn8V_Ykr9Bq5P5KYPfNf3Mzrfl7ZKRU/exec",
 };

@@ -8,6 +8,8 @@ import {
   Select,
   Checkbox,
   Result,
+  Divider,
+  Space,
 } from "antd";
 import { MinusCircleOutlined, PlusOutlined } from "@ant-design/icons";
 import { Scanner } from "@yudiel/react-qr-scanner";
@@ -27,12 +29,26 @@ const LoanForm = () => {
   const [fullSerialOfItemsLoaned, setFullSerialOfItemsLoaned] = useState([]);
   const [isSuccessModalShown, setIsSuccessModalShown] = useState(false);
   const [loanID, setLoanID] = useState("");
+  const [otherSubUnit, setOtherSubUnit] = useState("");
+  const [subUnit, setSubUnit] = useState(CONSTANTS.COYS);
 
   // QR scanner state
   const [isScanning, setIsScanning] = useState(false);
   const [isScannerPaused, setIsScannerPaused] = useState(true);
 
   const initialValues = {};
+
+  const onOtherSubUnitChange = (e) => {
+    setOtherSubUnit(e.target.value.toUpperCase());
+  };
+
+  const addOtherSubUnit = (e) => {
+    if (subUnit.length === 0) return;
+
+    e.preventDefault();
+    setSubUnit([...subUnit, otherSubUnit]);
+    setOtherSubUnit("");
+  };
 
   const validateHandset = (itemsLoaned) => {
     const set = new Set();
@@ -201,9 +217,35 @@ const LoanForm = () => {
             },
           ]}
         >
-          <Select
+          {/* <Select
             placeholder="Select your sub-unit."
             options={CONSTANTS.COYS.map((item) => ({
+              value: item,
+              label: item,
+            }))}
+          /> */}
+          <Select
+            placeholder="Select your sub-unit."
+            popupRender={(menu) => (
+              <>
+                {menu}
+                <Divider style={{ margin: "8px 0" }} />
+                <Space style={{ padding: "0 8px 4px" }}>
+                  <Input
+                    placeholder="Others"
+                    value={otherSubUnit}
+                    onChange={onOtherSubUnitChange}
+                    onKeyDown={(e) => e.stopPropagation()}
+                  />
+                  <Button
+                    type="text"
+                    icon={<PlusOutlined />}
+                    onClick={addOtherSubUnit}
+                  />
+                </Space>
+              </>
+            )}
+            options={subUnit.map((item) => ({
               value: item,
               label: item,
             }))}

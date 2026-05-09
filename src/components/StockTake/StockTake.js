@@ -1,4 +1,4 @@
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect } from "react";
 import {
   Button,
   Form,
@@ -11,12 +11,13 @@ import {
   Tag,
   Carousel,
   Card,
+  Spin,
 } from "antd";
 import { Scanner } from "@yudiel/react-qr-scanner";
 import SHA256 from "crypto-js/sha256";
 
 import { CONSTANTS } from "../../utils/constants";
-import { updateGoogleSheet } from "../../utils/googleSheetAPI";
+import { getList, updateGoogleSheet } from "../../utils/googleSheetAPI";
 import "./StockTake.css";
 import "antd/dist/reset.css";
 
@@ -47,6 +48,7 @@ const StockTake = () => {
   const [isSuccessModalShown, setIsSuccessModalShown] = useState(false);
   const [isModalShown, setIsModalShown] = useState(false);
   const [stockTakeID, setStockTakeID] = useState("");
+  const [isListLoading, setIsListLoading] = useState(false);
 
   // QR scanner state
   const [isScannerPaused, setIsScannerPaused] = useState(true);
@@ -55,6 +57,23 @@ const StockTake = () => {
     itemsAccounted: itemsAccounted,
     powerBanksAccounted: powerBanksAccounted,
   };
+
+  useEffect(() => {
+    const fetchList = async () => {
+      setIsListLoading(true);
+      try {
+        const [handset, powerbank] = await getList(CONSTANTS.SHEETS);
+        setItemsAccounted(handset);
+        setPowerBanksAccounted(powerbank);
+      } catch (error) {
+        messageApi.error("Failed to load list.");
+      } finally {
+        setIsListLoading(false);
+      }
+    };
+
+    fetchList();
+  }, [messageApi]);
 
   const renderStatus = (value) => (
     <Tag color={value ? "green" : "red"}>{value ? "✓" : "✕"}</Tag>
@@ -216,7 +235,7 @@ const StockTake = () => {
   };
 
   return (
-    <div>
+    <Spin spinning={isListLoading}>
       {contextHolder}
       <div style={{ width: "80vw", margin: "0 auto" }}>
         <Button
@@ -445,7 +464,7 @@ const StockTake = () => {
 
         <Divider style={{ borderColor: "#000000" }} />
       </Modal>
-    </div>
+    </Spin>
   );
 };
 
