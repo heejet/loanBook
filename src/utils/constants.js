@@ -1,5 +1,6 @@
 export const CONSTANTS = {
-  COYS: ["BDE_HQ", "35_HQ", "35_ALPHA", "35_SUPPORT", ],
+  COYS: ["HQ ARMCEG", "BETC", "35_HQ", "35_ALPHA", "35_SUPPORT", "TUAV"], //F1
+  // COYS: ["HQ ARMCEG", "BETC", "K19G", "K14J_BRAVO", "1352", "10C4I", "TUAV"], //F2
   COMMANDS: {
     SIGN_IN: "SIGN_IN",
     SIGN_OUT: "SIGN_OUT",
